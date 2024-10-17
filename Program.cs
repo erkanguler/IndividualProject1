@@ -209,7 +209,15 @@ namespace IndividualProject1
 
                         break;
                     case "4": // Save to-do list to a file
-                        PersistenceManager.serializeTasks(FILENAME, ToDoList);
+                        try
+                        {
+                            PersistenceManager.serializeTasks(FILENAME, ToDoList);
+                        }
+                        catch (Exception ex)
+                        {
+                            string m = "To-do list could not be saved to the file.\n" + ex.Message;
+                            PrintTextWithColor(m, ConsoleColor.Red);
+                        }
                         Environment.Exit(0);
                         break;
                     default:
@@ -257,6 +265,11 @@ namespace IndividualProject1
             catch (JsonException ex)
             {
                 PrintTextWithColor(Text.DESERIALIZATION_ERROR_FORMAT + "\n" + ex.Message, ConsoleColor.Red);
+                Environment.Exit(0);
+            }
+            catch (Exception ex)
+            {
+                PrintTextWithColor("To-do list could not be loaded." + "\n" + ex.Message, ConsoleColor.Red);
                 Environment.Exit(0);
             }
         }
