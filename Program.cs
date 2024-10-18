@@ -111,6 +111,7 @@ namespace IndividualProject1
 
                             ToDoList.Add(new Task { Title = title, DueDate = date, Project = (Project)(project - 1), Status = false });
 
+                            printToDoList(ToDoList);
                             PrintTextWithColor("Press 'Enter' key to continue adding new tasks or enter 'q' for main menu", ConsoleColor.Blue);
 
                             string? continueOrQuit = GetInput();
