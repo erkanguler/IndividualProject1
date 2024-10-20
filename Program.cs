@@ -6,7 +6,7 @@ namespace IndividualProject1
 {
     public class App
     {
-        private List<Task> ToDoList = new List<Task>();
+        private ToDoList toDoList = new ToDoList();
 
         static string FILENAME = $"{Environment.CurrentDirectory}{Path.DirectorySeparatorChar}ToDoList.json";
 
@@ -15,7 +15,7 @@ namespace IndividualProject1
             if (File.Exists(FILENAME))
                 LoadToDoList();
 
-            if (ToDoList.Count < 1)
+            if (toDoList.Tasks.Count < 1)
                 GenerateSampleTasks();
 
             while (true)
@@ -31,13 +31,13 @@ namespace IndividualProject1
                 switch (action)
                 {
                     case "1": // Show all tasks and enable sorting by project or date
-                        if (ToDoList.Count < 1)
+                        if (toDoList.Tasks.Count < 1)
                         {
                             PrintTextWithColor("\nThere is no task to show.", ConsoleColor.Red);
                             break;
                         }
 
-                        printToDoList(ToDoList);
+                        printTasks(toDoList.Tasks);
 
                         while (true)
                         {
@@ -53,9 +53,9 @@ namespace IndividualProject1
                                 break;
 
                             if (IsTokenEqual(input, "1"))
-                                printToDoList(SortTaskByDate(ToDoList));
+                                printTasks(toDoList.SortByDate());
                             else if (IsTokenEqual(input, "2"))
-                                printToDoList(SortTaskByProject(ToDoList));
+                                printTasks(toDoList.SortByProject());
                         }
 
                         break;
@@ -73,7 +73,7 @@ namespace IndividualProject1
                             if (IsTokenEqual(title, "q"))
                                 break;
 
-                            Task? aTask = FindTaskByTitle(title);
+                            Task? aTask = toDoList.FindTaskByTitle(title);
                             if (aTask is not null)
                             {
                                 PrintTextWithColor("You have already a task with that name.", ConsoleColor.Red);
@@ -109,9 +109,9 @@ namespace IndividualProject1
                                 break;
                             }
 
-                            ToDoList.Add(new Task { Title = title, DueDate = date, Project = (Project)(project - 1), Status = false });
+                            toDoList.AddTask(new Task { Title = title, DueDate = date, Project = (Project)(project - 1), Status = false });
 
-                            printToDoList(ToDoList);
+                            printTasks(toDoList.Tasks);
                             PrintTextWithColor("Press 'Enter' key to continue adding new tasks or enter 'q' for main menu", ConsoleColor.Blue);
 
                             string? continueOrQuit = GetInput();
@@ -121,7 +121,7 @@ namespace IndividualProject1
 
                             if (IsTokenEqual(continueOrQuit!, "q"))
                             {
-                                printToDoList(ToDoList);
+                                printTasks(toDoList.Tasks);
                                 goto GoToMainMenu;
                             }
                         }
@@ -130,7 +130,7 @@ namespace IndividualProject1
                     case "3": // Edit task
                         PrintTextWithColor(Text.GO_BACK, ConsoleColor.Blue);
 
-                        if (ToDoList.Count < 1)
+                        if (toDoList.Tasks.Count < 1)
                         {
                             PrintTextWithColor("\nThere is no task to edit.", ConsoleColor.Red);
                             break;
@@ -148,7 +148,7 @@ namespace IndividualProject1
                             if (IsTokenEqual(title, "q"))
                                 break;
 
-                            Task? taskTobeUpdated = FindTaskByTitle(title);
+                            Task? taskTobeUpdated = toDoList.FindTaskByTitle(title);
                             if (taskTobeUpdated is null)
                             {
                                 PrintTextWithColor($"\nThere is no task with that name.", ConsoleColor.Red);
@@ -172,11 +172,11 @@ namespace IndividualProject1
                                     if (newTitle is null)
                                         continue;
 
-                                    Task? aNewTitle = FindTaskByTitle(newTitle);
-                                    if (aNewTitle is not null)
+                                    Task? anyTask = toDoList.FindTaskByTitle(newTitle);
+                                    if (anyTask is not null)
                                     {
                                         PrintTextWithColor("You have already a task with that name.", ConsoleColor.Red);
-                                        printTask(aNewTitle);
+                                        printTask(anyTask);
                                         continue;
                                     }
 
@@ -195,16 +195,16 @@ namespace IndividualProject1
                                 }
                                 else if (IsTokenEqual(input, "4")) // Delete the task
                                 {
-                                    ToDoList.RemoveAt(ToDoList.IndexOf(taskTobeUpdated));
+                                    toDoList.RemoveTask(taskTobeUpdated);
                                     PrintTextWithColor("\nYou have successfully deleted your task.\n", ConsoleColor.Green);
-                                    printToDoList(ToDoList);
+                                    printTasks(toDoList.Tasks);
 
                                     goto GoToMainMenu;
                                 }
                                 else if (IsTokenEqual(input, "5")) // Go to main menu
                                     goto GoToMainMenu;
 
-                                printToDoList(ToDoList);
+                                printTasks(toDoList.Tasks);
                             }
                         }
 
@@ -212,7 +212,7 @@ namespace IndividualProject1
                     case "4": // Save to-do list to a file
                         try
                         {
-                            PersistenceManager.serializeTasks(FILENAME, ToDoList);
+                            PersistenceManager.serializeTasks(FILENAME, toDoList.Tasks);
                         }
                         catch (Exception ex)
                         {
@@ -243,8 +243,8 @@ namespace IndividualProject1
 
         public (int, int) GetTasksCount()
         {
-            int numberOfDoneTasks = GetTasksByStatus(true).Count;
-            int numberOfNotDoneTasks = GetTasksByStatus(false).Count;
+            int numberOfDoneTasks = toDoList.GetTasksByStatus(true).Count;
+            int numberOfNotDoneTasks = toDoList.GetTasksByStatus(false).Count;
 
             return (numberOfDoneTasks, numberOfNotDoneTasks);
         }
@@ -261,7 +261,7 @@ namespace IndividualProject1
                     Environment.Exit(0);
                 }
 
-                ToDoList = tasks;
+                toDoList.Tasks = tasks;
             }
             catch (JsonException ex)
             {
@@ -303,12 +303,7 @@ namespace IndividualProject1
             return str1.Trim().Equals(str2.Trim(), StringComparison.OrdinalIgnoreCase);
         }
 
-        public Task? FindTaskByTitle(string taskTitle)
-        {
-            return ToDoList.Find(task => IsTokenEqual(task.Title, taskTitle));
-        }
-
-        public void printToDoList(List<Task> tasks)
+        public void printTasks(List<Task> tasks)
         {
             if (tasks.Count < 1)
                 return;
@@ -317,7 +312,14 @@ namespace IndividualProject1
 
             foreach (Task task in tasks)
             {
-                Console.WriteLine(task);
+                if (task.Status)
+                {
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine(task);
+                    Console.ResetColor();
+                }
+                else
+                    Console.WriteLine(task);
             }
         }
 
@@ -348,23 +350,8 @@ namespace IndividualProject1
                 Project project = (Project)(new Random()).Next(0, 3);
                 bool status = Convert.ToBoolean((new Random()).Next(0, 2));
 
-                ToDoList.Add(new Task { Title = $"Task{i}", DueDate = aDate, Project = project, Status = status });
+                toDoList.AddTask(new Task { Title = $"Task{i}", DueDate = aDate, Project = project, Status = status });
             }
-        }
-
-        public List<Task> SortTaskByDate(List<Task> tasks)
-        {
-            return tasks.OrderBy(task => task.DueDate).ToList();
-        }
-
-        public List<Task> SortTaskByProject(List<Task> tasks)
-        {
-            return tasks.OrderBy(task => task.Project).ToList();
-        }
-
-        public List<Task> GetTasksByStatus(bool done = false)
-        {
-            return ToDoList.Where(task => task.Status == done).ToList();
         }
 
         public void PrintTextWithColor(string text, ConsoleColor color)
@@ -418,6 +405,46 @@ namespace IndividualProject1
             public const string UPDATE_STATUS = "\nYou have successfully updated your task's status.";
 
             public const string GO_BACK = "\nEnter 'q' to go back.";
+        }
+    }
+
+    public class ToDoList
+    {
+        public List<Task> Tasks { get; set; }
+
+        public ToDoList()
+        {
+            Tasks = new List<Task>();
+        }
+
+        public void AddTask(Task task)
+        {
+            Tasks.Add(task);
+        }
+
+        public List<Task> SortByDate()
+        {
+            return Tasks.OrderBy(task => task.DueDate).ToList();
+        }
+
+        public List<Task> SortByProject()
+        {
+            return Tasks.OrderBy(task => task.Project).ToList();
+        }
+
+        public Task? FindTaskByTitle(string taskTitle)
+        {
+            return Tasks.Find(task => task.Title.Equals(taskTitle, StringComparison.OrdinalIgnoreCase));
+        }
+
+        public void RemoveTask(Task task)
+        {
+            Tasks.RemoveAt(Tasks.IndexOf(task));
+        }
+
+        public List<Task> GetTasksByStatus(bool done = false)
+        {
+            return Tasks.Where(task => task.Status == done).ToList();
         }
     }
 
